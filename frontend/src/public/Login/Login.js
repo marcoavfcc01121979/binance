@@ -28,8 +28,12 @@ function Login() {
     event.preventDefault();
 
     doLogin(email, password)
-      .then((isValid) => {
-        if (isValid) history.push("/settings");
+      .then((response) => {
+        if (response) {
+          const { token } = response;
+          localStorage.setItem("token", token);
+          history.push("/settings");
+        }
       })
       .catch((err) => {
         setError(err);
