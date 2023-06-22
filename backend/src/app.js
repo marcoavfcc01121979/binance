@@ -18,6 +18,8 @@ app.post("/login", authController.doLogin);
 
 app.get("/settings", authMiddlewares, settingsController.getSettings);
 
+app.patch("/settings", authMiddlewares, settingsController.updateSettings);
+
 app.post("/logout", authController.doLogout);
 
 app.use(errorMiddlewares);

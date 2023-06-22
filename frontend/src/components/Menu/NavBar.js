@@ -1,19 +1,20 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 function NavBar() {
   return (
     <React.Fragment>
-      <nav className="navbar navbar-dark navbar-theme-primary px-4 col-12 d-lg-nome">
-        <a className="navbar-brand me-lg-5" href="/dashboard">
+      <nav className="navbar navbar-dark navbar-theme-primary px-4 col-12 d-lg-none">
+        <Link className="navbar-brand me-lg-5" to="/">
           <img
             className="navbar-brand-light"
             src="/img/brand/light.svg"
             alt="Beholder logo"
           />
-        </a>
+        </Link>
         <div className="d-flex align-items-center">
           <button
-            className="navbar-toggle d-lg-nome collapsed"
+            className="navbar-toggler d-lg-none collapsed"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#sidebarMenu"
