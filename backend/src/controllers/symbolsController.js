@@ -38,7 +38,7 @@ async function syncSymbols(req, res, next) {
   const settings = await settingsRepository.getSetingsDecrypted(
     res.locals.token.id
   );
-  const exchange = require("../utils/exchange")(settings);
+  const exchange = require("../utils/exchanges")(settings);
   const symbols = (await exchange.exchangeInfo()).symbols.map((item) => {
     const notionalFilter = item.filters.find(
       (filter) => filter.filterType === "NOTIONAL"
