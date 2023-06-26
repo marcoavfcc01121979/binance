@@ -32,7 +32,7 @@ function Login() {
         if (response) {
           const { token } = response;
           localStorage.setItem("token", token);
-          history.push("/settings");
+          history.push("/dashboard");
         }
       })
       .catch((err) => {

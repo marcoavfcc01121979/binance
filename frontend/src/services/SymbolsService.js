@@ -5,6 +5,7 @@ const SYMBOLS_URL = `${process.env.REACT_APP_API_URL}/symbols`;
 export async function getSymbols(token) {
   const headers = { authorization: token };
   const response = await axios.get(SYMBOLS_URL, { headers });
+  console.log("response ", response);
   return response.data;
 }
 
