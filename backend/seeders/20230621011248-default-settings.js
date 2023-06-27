@@ -14,9 +14,10 @@ module.exports = {
     if (!settingsId) {
       return queryInterface.bulkInsert("settings", [
         {
-          email: "admin@admin.com",
+          email: "marcoavfcc@gmail.com",
           password: bcrypt.hashSync("123456"),
           apiUrl: "https://testnet.binance.vision/api/",
+          streamUrl: "wss://testnet.binance.vision/ws/",
           accessKey:
             "RyZOon5ks56CHXBZNMTIKdl7mKRVNpzGL7zmj9Rg63A4bQiasKFn03aXVatnChH8",
           secretKey: crypto.encrypt(
