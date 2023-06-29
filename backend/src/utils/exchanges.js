@@ -18,6 +18,10 @@ module.exports = (settings) => {
     },
   });
 
+  function balance() {
+    return binance.balance();
+  }
+
   function exchangeInfo() {
     return binance.exchangeInfo();
   }
@@ -30,9 +34,25 @@ module.exports = (settings) => {
     binance.websockets.bookTickers((order) => callback(order));
   }
 
+  function userDataStream(
+    balanceCallback,
+    executionCallback,
+    listStatusCallback
+  ) {
+    binance.websockets.userData(
+      (balance) => balanceCallback(balance),
+      (executionData) => executionCallback(executionData),
+      (subscribedData) =>
+        console.log(`userDataStream: subscribed: ${subscribedData}`),
+      (listStatusData) => listStatusCallback(listStatusData)
+    );
+  }
+
   return {
     exchangeInfo,
     miniTickerStream,
     bookStream,
+    userDataStream,
+    balance,
   };
 };

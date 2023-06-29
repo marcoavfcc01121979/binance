@@ -4,7 +4,7 @@ import Menu from "../../components/Menu/Menu";
 import MiniTicker from "./MiniTicker/MiniTicker";
 import BookTicker from "./BookTicker/BookTicker";
 import useWebSocket from "react-use-websocket";
-// import Wallet from './Wallet/Wallet';
+import Wallet from "./Wallet/Wallet";
 // import NewOrderButton from '../../components/NewOrder/NewOrderButton';
 // import NewOrderModal from '../../components/NewOrder/NewOrderModal';
 // import CandleChart from './CandleChart';
@@ -70,7 +70,10 @@ function Dashboard() {
         </div>
         <div className="row">
           <BookTicker data={bookState} />
-          {/* <Wallet data={balanceState} onUpdate={onWalletUpdate} /> */}
+          <Wallet
+            data={balanceState}
+            // onUpdate={onWalletUpdate}
+          />
         </div>
       </main>
     </React.Fragment>
