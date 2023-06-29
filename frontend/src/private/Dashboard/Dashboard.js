@@ -7,7 +7,7 @@ import useWebSocket from "react-use-websocket";
 import Wallet from "./Wallet/Wallet";
 // import NewOrderButton from '../../components/NewOrder/NewOrderButton';
 // import NewOrderModal from '../../components/NewOrder/NewOrderModal';
-// import CandleChart from './CandleChart';
+import CandleChart from "./CandleChart";
 // import SelectSymbol from '../../components/SelectSymbol/SelectSymbol';
 
 function Dashboard() {
@@ -62,7 +62,7 @@ function Dashboard() {
             <div className="ms-2 ms-lg-3">{/* <NewOrderButton /> */}</div>
           </div>
         </div>
-        {/* <CandleChart symbol={chartSymbol} /> */}
+        <CandleChart symbol={chartSymbol} />
         <div className="row">
           <div className="col-12">
             <MiniTicker data={tickerState} />
