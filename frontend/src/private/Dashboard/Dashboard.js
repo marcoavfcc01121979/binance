@@ -5,8 +5,8 @@ import MiniTicker from "./MiniTicker/MiniTicker";
 import BookTicker from "./BookTicker/BookTicker";
 import useWebSocket from "react-use-websocket";
 import Wallet from "./Wallet/Wallet";
-// import NewOrderButton from '../../components/NewOrder/NewOrderButton';
-// import NewOrderModal from '../../components/NewOrder/NewOrderModal';
+import NewOrderButton from "../../components/NewOrder/NewOrderButton";
+import NewOrderModal from "../../components/NewOrder/NewOrderModal";
 import CandleChart from "./CandleChart";
 // import SelectSymbol from '../../components/SelectSymbol/SelectSymbol';
 
@@ -22,6 +22,10 @@ function Dashboard() {
   const [wallet, setWallet] = useState({});
 
   const [chartSymbol, setChartSymbol] = useState("BTCUSDT");
+
+  function onWalletUpdate(walletObj) {
+    setWallet(walletObj);
+  }
 
   const { lastJsonMessage } = useWebSocket(process.env.REACT_APP_WS_URL, {
     onOpen: () => {
@@ -59,7 +63,9 @@ function Dashboard() {
             <div className="d-inline-flex align-items-center">
               {/* <SelectSymbol onChange={onChangeSymbol} /> */}
             </div>
-            <div className="ms-2 ms-lg-3">{/* <NewOrderButton /> */}</div>
+            <div className="ms-2 ms-lg-3">
+              <NewOrderButton />
+            </div>
           </div>
         </div>
         <CandleChart symbol={chartSymbol} />
@@ -70,12 +76,10 @@ function Dashboard() {
         </div>
         <div className="row">
           <BookTicker data={bookState} />
-          <Wallet
-            data={balanceState}
-            // onUpdate={onWalletUpdate}
-          />
+          <Wallet data={balanceState} onUpdate={onWalletUpdate} />
         </div>
       </main>
+      <NewOrderModal wallet={wallet} />
     </React.Fragment>
   );
 }
