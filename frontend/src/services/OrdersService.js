@@ -3,6 +3,32 @@ import axios from "axios";
 const ORDERS_URL = `${process.env.REACT_APP_API_URL}/orders/`;
 const { STOP_TYPES } = require("./ExchangeService");
 
+export async function getOrders(symbol, page, token) {
+  const ordersUrl = `${ORDERS_URL}${symbol}?page=${page}`;
+
+  const headers = { authorization: token };
+  const response = await axios.get(ordersUrl, { headers });
+  return response.data; //{count, rows}
+}
+
+export async function cancelOrder(symbol, orderId, token) {
+  const headers = { authorization: token };
+  const response = await axios.delete(`${ORDERS_URL}${symbol}/${orderId}`, {
+    headers,
+  });
+  return response.data;
+}
+
+export async function syncOrder(beholderOrderId, token) {
+  const headers = { authorization: token };
+  const response = await axios.post(
+    `${ORDERS_URL}${beholderOrderId}/sync`,
+    null,
+    { headers }
+  );
+  return response.data;
+}
+
 export async function placeOrder(order, token) {
   const postOrder = {
     symbol: order.symbol.toUpperCase(),

@@ -27,6 +27,10 @@ function Dashboard() {
     setWallet(walletObj);
   }
 
+  function onOrderSubmit(order) {
+    history.push("/orders/" + order.symbol);
+  }
+
   const { lastJsonMessage } = useWebSocket(process.env.REACT_APP_WS_URL, {
     onOpen: () => {
       console.log(`Connected to App WS`);
@@ -79,7 +83,7 @@ function Dashboard() {
           <Wallet data={balanceState} onUpdate={onWalletUpdate} />
         </div>
       </main>
-      <NewOrderModal wallet={wallet} />
+      <NewOrderModal wallet={wallet} onSubmit={onOrderSubmit} />
     </React.Fragment>
   );
 }

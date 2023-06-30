@@ -7,7 +7,7 @@ import OrderType from "./OrderType";
 import QuantityInput from "./QuantityInput";
 import { getSymbol } from "../../services/SymbolsService";
 import { STOP_TYPES } from "../../services/ExchangeService";
-import { placeOrder } from "../../services/OrderService";
+import { placeOrder } from "../../services/OrdersService";
 
 /**
  * props:
