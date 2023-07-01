@@ -8,7 +8,7 @@ import Wallet from "./Wallet/Wallet";
 import NewOrderButton from "../../components/NewOrder/NewOrderButton";
 import NewOrderModal from "../../components/NewOrder/NewOrderModal";
 import CandleChart from "./CandleChart";
-// import SelectSymbol from '../../components/SelectSymbol/SelectSymbol';
+import SelectSymbol from "../../components/SelectSymbol/SelectSymbol";
 
 function Dashboard() {
   const history = useHistory();
@@ -55,6 +55,10 @@ function Dashboard() {
     reconnectInterval: 3000,
   });
 
+  function onChangeSymbol(event) {
+    setChartSymbol(event.target.value);
+  }
+
   return (
     <React.Fragment>
       <Menu />
@@ -65,7 +69,7 @@ function Dashboard() {
           </div>
           <div className="btn-toolbar mb-md-0">
             <div className="d-inline-flex align-items-center">
-              {/* <SelectSymbol onChange={onChangeSymbol} /> */}
+              <SelectSymbol onChange={onChangeSymbol} />
             </div>
             <div className="ms-2 ms-lg-3">
               <NewOrderButton />

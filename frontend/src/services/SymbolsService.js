@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const SYMBOLS_URL = `${process.env.REACT_APP_API_URL}/symbols`;
+const SYMBOLS_URL = `${process.env.REACT_APP_API_URL}/symbols/`;
 
 export async function getSymbols(token) {
   const headers = { authorization: token };

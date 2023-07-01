@@ -48,7 +48,7 @@ async function placeOrder(req, res, next) {
 async function cancelOrder(req, res, next) {
   const id = res.locals.token.id;
   const settings = await settingsRepository.getSetingsDecrypted(id);
-  const exchange = require("../utils/exchange")(settings);
+  const exchange = require("../utils/exchanges")(settings);
 
   const { symbol, orderId } = req.params;
 
@@ -72,7 +72,7 @@ async function cancelOrder(req, res, next) {
 async function syncOrder(req, res, next) {
   const id = res.locals.token.id;
   const settings = await settingsRepository.getSetingsDecrypted(id);
-  const exchange = require("../utils/exchange")(settings);
+  const exchange = require("../utils/exchanges")(settings);
 
   const beholderOrderId = req.params.id;
   const order = await ordersRepository.getOrderById(beholderOrderId);
