@@ -7,7 +7,7 @@ const crypto = require("../src/utils/crypto");
 module.exports = {
   async up(queryInterface, Sequelize) {
     const settingsId = await queryInterface.rawSelect(
-      "Settings",
+      "settings",
       { where: {}, limit: 1 },
       ["id"]
     );
