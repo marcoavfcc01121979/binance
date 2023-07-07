@@ -1,17 +1,141 @@
-const WebSocket = require("ws");
-const crypto = require("./utils/crypto");
 const ordersRepository = require("./repositories/ordersRepository");
-const { orderStatus } = require("./repositories/ordersRepository");
-const monitorsRepository = require("./repositories/monitorsRepository");
+// const { orderStatus } = require("./repositories/ordersRepository");
+const {
+  getActiveMonitors,
+  monitorTypes,
+} = require("./repositories/monitorsRepository");
+const { indexKeys } = require("./utils/indexes");
 
 let WSS, beholder, exchange;
 
-function startMiniTickerMonitor(broadCastLabel, logs) {
+function startMiniTickerMonitor(broadcastLabel, logs) {
   if (!exchange) return new Error("Exchamge Monitor not initialized yet!");
+
   exchange.miniTickerStream((markets) => {
     if (logs) console.log(markets);
 
-    if (broadCastLabel && WSS) WSS.broadcast({ [broadCastLabel]: markets });
+    if (broadcastLabel && WSS) WSS.broadcast({ [broadcastLabel]: markets });
+
+    const books = Object.entries(markets).map((mkt) => {
+      return { symbol: mkt[0], bestAsk: mkt[1].close, bestBid: mkt[1].close };
+    });
+
+    if (WSS) WSS.broadcast({ book: books });
+  });
+}
+
+async function loadWallet() {
+  if (!exchange) return new Error("Exchange Monitor not initialized yet!");
+  const info = await exchange.balance();
+  const wallet = Object.entries(info).map((item) => {
+    return {
+      symbol: item[0],
+      available: item[1].available,
+      onOrder: item[1].onOrder,
+    };
+  });
+  return wallet;
+}
+
+function processExecutionData(executionData, broadcastLabel) {
+  if (executionData.x === "NEW") return; //ignora as novas, pois podem ter vindo de outras fontes
+
+  const order = {
+    symbol: executionData.s,
+    orderId: executionData.i,
+    clientOrderId:
+      executionData.X === "CANCELED" ? executionData.C : executionData.c,
+    side: executionData.S,
+    type: executionData.o,
+    status: executionData.X,
+    isMaker: executionData.m,
+    transactTime: executionData.T,
+  };
+
+  if (order.status === "FILLED") {
+    const quoteAmount = parseFloat(executionData.Z);
+    order.avgPrice = quoteAmount / parseFloat(executionData.z);
+    order.commission = executionData.n;
+    order.net = quoteAmount - parseFloat(order.commission);
+  }
+
+  //   const isQuoteCommission =
+  //     executionData.N && order.symbol.endsWith(executionData.N);
+  //   order.net = isQuoteCommission
+  //     ? quoteAmount - parseFloat(order.commission)
+  //     : quoteAmount;
+  // }
+
+  if (order.status === "REJECTED") order.obs = executionData.r;
+
+  setTimeout(() => {
+    ordersRepository
+      .updateOrderByOrderId(order.orderId, order.clientOrderId, order)
+      .then((order) => {
+        if (order) {
+          if (broadcastLabel && WSS) WSS.broadcast({ [broadcastLabel]: order });
+        }
+      })
+      .catch((err) => console.error(err));
+  }, 2000);
+}
+
+function startUserDataMonitor(broadcastLabel, logs) {
+  if (!exchange) return new Error("Exchange Monitor not initialized yet!");
+
+  if (broadcastLabel === null || broadcastLabel === undefined) {
+    broadcastLabel = "";
+  }
+  const [balanceBroadcast, executionBroadcast] = broadcastLabel.split(",");
+
+  loadWallet();
+
+  exchange.userDataStream(
+    (balanceData) => {
+      if (logs) console.log(balanceData);
+      const wallet = loadWallet();
+      if (balanceBroadcast && WSS)
+        WSS.broadcast({ [balanceBroadcast]: balanceData });
+    },
+    (executionData) => {
+      if (logs) console.log(executionData);
+      processExecutionData(executionData, executionBroadcast);
+    }
+  );
+
+  console.log(`User Data Monitor has started at ${broadcastLabel}!`);
+}
+
+function processChartData(symbol, indexes, interval, ohlc) {
+  indexes.map((index) => {
+    switch (index) {
+      case indexKeys.RSI: {
+      }
+      case indexKeys.MACD: {
+      }
+      default:
+        return;
+    }
+  });
+}
+
+function startChartMonitor(symbol, interval, indexes, broadcastLabel, logs) {
+  if (!symbol)
+    return new Error(`You can´t start a Chart Monitor without a symbol!`);
+  if (!exchange) return new Error("Exchange Monitor not initialized yet!");
+
+  exchange.chartStream(symbol, interval || "1m", (ohlc) => {
+    const lastCandle = {
+      open: ohlc.open[ohlc.open.length - 1],
+      close: ohlc.close[ohlc.close.length - 1],
+      high: ohlc.high[ohlc.high.length - 1],
+      low: ohlc.low[ohlc.low.length - 1],
+    };
+
+    if (logs) console.log(lastCandle);
+
+    if (broadcastLabel && WSS) WSS.broadcast(lastCandle);
+    processChartData(symbol, indexes, interval, ohlc);
   });
 }
 
@@ -25,18 +149,24 @@ async function init(settings, wssInstance, beholderInstance) {
   beholder = beholderInstance;
   exchange = require("./utils/exchanges")(settings);
 
-  const monitors = await monitorsRepository.getActiveMonitors();
+  const monitors = await getActiveMonitors();
   monitors.map((monitor) => {
     setTimeout(() => {
       switch (monitor.type) {
-        case monitorsRepository.monitorTypes.MINI_TICKER:
-          return startMiniTickerMonitor(monitor.broadCastLabel, monitor.logs);
-        case monitorsRepository.monitorTypes.BOOK:
-          return;
-        case monitorsRepository.monitorTypes.USER_DATA:
-          return;
-        case monitorsRepository.monitorTypes.CANDLES:
-          return;
+        case monitorTypes.MINI_TICKER:
+          return startMiniTickerMonitor(monitor.broadcastLabel, monitor.logs);
+        // case monitorsRepository.monitorTypes.BOOK:
+        //   return;
+        case monitorTypes.USER_DATA:
+          return startUserDataMonitor(monitor.broadcastLabel, monitor.logs);
+        case monitorTypes.CANDLES:
+          return startChartMonitor(
+            monitor.symbol,
+            monitor.interval,
+            monitor.indexes.split(","),
+            monitor.broadcastLabel,
+            monitor.logs
+          );
       }
     }, 250);
   });
@@ -44,69 +174,7 @@ async function init(settings, wssInstance, beholderInstance) {
   console.log(`App Exchange Monitor is running.`);
 }
 
-module.exports = (settings, wss) => {
-  // if (!settings)
-  //   throw new Error(`Can´t start Exchange Monitor without settings`);
-  // settings.secretKey = crypto.decrypt(settings.secretKey);
-  // const exchange = require("./utils/exchanges")(settings);
-
-  // exchange.miniTickerStream((markets) => {
-  //   // console.log(markets);
-  //   broadcast({ miniTicker: markets });
-
-  //   //simulação de book
-  //   const books = Object.entries(markets).map((mkt) => {
-  //     return { symbol: mkt[0], bestAsk: mkt[1].close, bestBid: mkt[1].close };
-  //   });
-  //   broadcast({ book: books });
-  //   //fim da simulação de book
-  // });
-
-  function processExecutionData(executionData) {
-    if (executionData.x === orderStatus.NEW) return; //ignora as novas, pois podem ter vindo de outras fontes
-
-    const order = {
-      symbol: executionData.s,
-      orderId: executionData.i,
-      clientOrderId:
-        executionData.X === orderStatus.CANCELED
-          ? executionData.C
-          : executionData.c,
-      side: executionData.S,
-      type: executionData.o,
-      status: executionData.X,
-      isMaker: executionData.m,
-      transactTime: executionData.T,
-    };
-
-    if (order.status === orderStatus.FILLED) {
-      const quoteAmount = parseFloat(executionData.Z);
-      order.avgPrice = quoteAmount / parseFloat(executionData.z);
-      order.commission = executionData.n;
-
-      const isQuoteCommission =
-        executionData.N && order.symbol.endsWith(executionData.N);
-      order.net = isQuoteCommission
-        ? quoteAmount - parseFloat(order.commission)
-        : quoteAmount;
-    }
-
-    if (order.status === orderStatus.REJECTED) order.obs = executionData.r;
-
-    setTimeout(() => {
-      ordersRepository
-        .updateOrderByOrderId(order.orderId, order.clientOrderId, order)
-        .then((order) => order && broadcast({ execution: order }))
-        .catch((err) => console.error(err));
-    }, 3000);
-  }
-
-  exchange.userDataStream(
-    (balanceData) => {
-      broadcast({ balance: balanceData });
-    },
-    (executionData) => {
-      processExecutionData(executionData);
-    }
-  );
+module.exports = {
+  init,
+  startChartMonitor,
 };
