@@ -6,4 +6,6 @@ const beholderController = require("../controllers/beholderController");
 
 router.get("/brain", beholderController.getBrain);
 
+router.get("/analysis", beholderController.getAnalysisIndexes);
+
 module.exports = router;

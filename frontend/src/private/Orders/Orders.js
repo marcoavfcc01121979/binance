@@ -9,6 +9,7 @@ import { getOrders } from "../../services/OrdersService";
 import Pagination from "../../components/Pagination/Pagination";
 import ViewOrderModal from "./ViewOrderModal";
 import { getBalance } from "../../services/ExchangeService";
+import Footer from "../../components/Footer/Footer";
 
 function Orders() {
   const defaultLocation = useLocation();
@@ -131,6 +132,7 @@ function Orders() {
           </table>
           <Pagination count={count} />
         </div>
+        <Footer />
       </main>
       <ViewOrderModal data={viewOrder} />
       <NewOrderModal wallet={balances} onSubmit={onOrderSubmit} />

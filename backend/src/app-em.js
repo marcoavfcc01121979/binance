@@ -2,7 +2,9 @@ const WebSocket = require("ws");
 const ordersRepository = require("./repositories/ordersRepository");
 const { orderStatus } = require("./repositories/ordersRepository");
 
-const { indexKeys } = require("./utils/indexes");
+const logger = require("./utils/logger");
+
+const { execCalc, indexKeys } = require("./utils/indexes");
 
 const {
   monitorTypes,
@@ -65,7 +67,50 @@ function startMiniTickerMonitor(monitorId, broadcastLabel, logs) {
       if (logs) logger("M:" + monitorId, err);
     }
   });
-  // logger("M:" + monitorId, "Mini Ticker Monitor has started!");
+  logger("M:" + monitorId, "Mini Ticker Monitor has started!");
+}
+
+let book = [];
+function startBookMonitor(monitorId, broadcastLabel, logs) {
+  if (!exchange) return new Error("Exchange Monitor not initialized yet.");
+  exchange.bookStream(async (order) => {
+    if (logs) logger("M:" + monitorId, order);
+
+    try {
+      if (book.length === 200) {
+        if (broadcastLabel && WSS) sendMessage({ [broadcastLabel]: book });
+        book = [];
+      } else book.push({ ...order });
+
+      const orderCopy = { ...order };
+      delete orderCopy.symbol;
+      delete orderCopy.updateId;
+      delete orderCopy.bestAskQty;
+      delete orderCopy.bestBidQty;
+
+      const converted = {};
+      Object.entries(orderCopy).map(
+        (prop) => (converted[prop[0]] = parseFloat(prop[1]))
+      );
+
+      const currentMemory = beholder.getMemory(order.symbol, indexKeys.BOOK);
+
+      const newMemory = {};
+      newMemory.previous = currentMemory ? currentMemory.current : converted;
+      newMemory.current = converted;
+
+      const results = await beholder.updateMemory(
+        order.symbol,
+        indexKeys.BOOK,
+        null,
+        newMemory
+      );
+      if (results) results.map((r) => sendMessage({ notification: r }));
+    } catch (err) {
+      if (logs) logger("M:" + monitorId, err);
+    }
+  });
+  logger("M:" + monitorId, "Book Monitor has started!");
 }
 
 async function loadWallet() {
@@ -115,10 +160,10 @@ async function startUserDataMonitor(monitorId, broadcastLabel, logs) {
 
     logger("M:" + monitorId, "User Data Monitor has started!");
   } catch (err) {
-    // logger(
-    //   "M:" + monitorId,
-    //   "User Data Monitor has NOT started!\n" + err.message
-    // );
+    logger(
+      "M:" + monitorId,
+      "User Data Monitor has NOT started!\n" + err.message
+    );
   }
 }
 
@@ -177,6 +222,20 @@ function processExecutionData(monitorId, executionData, broadcastLabel) {
       logger("M:" + monitorId, err);
     }
   }, 3000);
+}
+
+function stopChartMonitor(monitorId, symbol, interval, indexes, logs) {
+  if (!symbol) return new Error(`Can't stop a Chart Monitor without a symbol.`);
+  if (!exchange) return new Error("Exchange Monitor not initialized yet.");
+  exchange.terminateChartStream(symbol, interval);
+  if (logs)
+    logger("M:" + monitorId, `Chart Monitor ${symbol}_${interval} stopped!`);
+
+  beholder.deleteMemory(symbol, indexKeys.LAST_CANDLE, interval);
+  beholder.deleteMemory(symbol, indexKeys.PREVIOUS_CANDLE, interval);
+
+  if (indexes && Array.isArray(indexes))
+    indexes.map((ix) => beholder.deleteMemory(symbol, ix, interval));
 }
 
 function startChartMonitor(
@@ -264,10 +323,24 @@ function startChartMonitor(
       if (logs) logger("M:" + monitorId, err);
     }
   });
-  // logger(
-  //   "M:" + monitorId,
-  //   `Chart Monitor has started for ${symbol}_${interval}!`
-  // );
+  logger(
+    "M:" + monitorId,
+    `Chart Monitor has started for ${symbol}_${interval}!`
+  );
+}
+
+function stopChartMonitor(monitorId, symbol, interval, indexes, logs) {
+  if (!symbol) return new Error(`Can't stop a Chart Monitor without a symbol.`);
+  if (!exchange) return new Error("Exchange Monitor not initialized yet.");
+  exchange.terminateChartStream(symbol, interval);
+  if (logs)
+    logger("M:" + monitorId, `Chart Monitor ${symbol}_${interval} stopped!`);
+
+  beholder.deleteMemory(symbol, indexKeys.LAST_CANDLE, interval);
+  beholder.deleteMemory(symbol, indexKeys.PREVIOUS_CANDLE, interval);
+
+  if (indexes && Array.isArray(indexes))
+    indexes.map((ix) => beholder.deleteMemory(symbol, ix, interval));
 }
 
 async function processChartData(
@@ -332,8 +405,8 @@ async function init(settings, wssInstance, beholderInstance) {
       switch (m.type) {
         case monitorTypes.MINI_TICKER:
           return startMiniTickerMonitor(m.id, m.broadcastLabel, m.logs);
-        // case monitorTypes.BOOK:
-        //   return startBookMonitor(m.id, m.broadcastLabel, m.logs);
+        case monitorTypes.BOOK:
+          return startBookMonitor(m.id, m.broadcastLabel, m.logs);
         case monitorTypes.USER_DATA: {
           if (!settings.accessKey || !settings.secretKey) return;
           return startUserDataMonitor(m.id, m.broadcastLabel, m.logs);
@@ -367,10 +440,11 @@ async function init(settings, wssInstance, beholderInstance) {
   //   })
   // );
 
-  //logger("system", "App Exchange Monitor is running!");
+  logger("system", "App Exchange Monitor is running!");
 }
 
 module.exports = {
   init,
   startChartMonitor,
+  stopChartMonitor,
 };

@@ -50,6 +50,21 @@ async function updateMemory(
   // return testAutomations(memoryKey);
 }
 
+function deleteMemory(symbol, index, interval) {
+  try {
+    const indexKey = interval ? `${index}_${interval}` : index;
+    const memoryKey = `${symbol}:${indexKey}`;
+    if (MEMORY[memoryKey] === undefined) return;
+
+    LOCK_MEMORY = true;
+    delete MEMORY[memoryKey];
+
+    if (LOGS) logger("beholder", `Beholder memory delete: ${memoryKey}!`);
+  } finally {
+    LOCK_MEMORY = false;
+  }
+}
+
 function parseMemoryKey(symbol, index, interval = null) {
   const indexKey = interval ? `${index}_${interval}` : index;
   return `${symbol}:${indexKey}`;
@@ -76,4 +91,5 @@ module.exports = {
   updateMemory,
   getMemory,
   getBrain,
+  deleteMemory,
 };

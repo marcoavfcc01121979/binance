@@ -112,4 +112,5 @@ module.exports = {
   getActiveMonitors,
   getMonitors,
   updateMonitor,
+  monitorExists,
 };

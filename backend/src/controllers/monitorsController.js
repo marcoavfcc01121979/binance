@@ -36,30 +36,52 @@ async function getMonitors(req, res, next) {
   res.json(monitors);
 }
 
-async function insertMonitor(req, res, next) {
-  const newMonitor = req.body;
-  const saveMonitor = await monitorsRepository.insertMonitor(newMonitor);
+function validateMonitor(newMonitor) {
+  if (newMonitor.type !== monitorsRepository.monitorTypes.CANDLES) {
+    newMonitor.interval = null;
+    newMonitor.indexes = null;
 
-  if (saveMonitor.isActive) {
+    if (newMonitor.type !== monitorTypes.TICKER) newMonitor.symbol = "*";
   }
 
-  res.status(201).json(saveMonitor.get({ plain: true }));
+  if (newMonitor.broadcastLabel === "none") newMonitor.broadcastLabel = null;
+
+  return newMonitor;
+}
+
+async function insertMonitor(req, res, next) {
+  const newMonitor = validateMonitor(req.body);
+
+  const alreadyExists = await monitorsRepository.monitorExists(
+    newMonitor.type,
+    newMonitor.symbol,
+    newMonitor.interval
+  );
+  if (alreadyExists)
+    res.status(409).send(`Already exists a monitor with these params.`);
+
+  const monitor = await monitorsRepository.insertMonitor(newMonitor);
+
+  if (monitor.isActive) {
+    startStreamMonitor(monitor);
+  }
+
+  res.status(201).json(monitor.get({ plain: true }));
 }
 
 async function updateMonitor(req, res, next) {
   const id = req.params.id;
-  const newMonitor = req.body;
+  const newMonitor = validateMonitor(req.body);
 
   const currentMonitor = await monitorsRepository.getMonitor(id);
   if (currentMonitor.isSystemMon) return res.sendStatus(403);
 
-  const updateMonitor = await monitorsRepository.updateMonitor(id, newMonitor);
+  const updatedMonitor = await monitorsRepository.updateMonitor(id, newMonitor);
+  stopStreamMonitor(currentMonitor);
 
-  if (updateMonitor.isActive) {
-  } else {
-  }
+  if (updatedMonitor.isActive) startStreamMonitor(updatedMonitor);
 
-  res.json(updateMonitor);
+  res.json(updatedMonitor);
 }
 
 async function deleteMonitor(req, res, next) {
