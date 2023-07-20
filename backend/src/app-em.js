@@ -167,6 +167,68 @@ async function startUserDataMonitor(monitorId, broadcastLabel, logs) {
   }
 }
 
+async function startTickerMonitor(monitorId, symbol, broadcastLabel, logs) {
+  if (!symbol)
+    return new Error(`Can't start a Ticker Monitor without a symbol.`);
+  if (!exchange) return new Error("Exchange Monitor not initialized yet.");
+
+  exchange.tickerStream(symbol, async (data) => {
+    if (logs) logger("M:" + monitorId, data);
+
+    try {
+      const ticker = getLightTicker({ ...data });
+      const currentMemory = beholder.getMemory(symbol, indexKeys.TICKER);
+
+      const newMemory = {};
+      newMemory.previous = currentMemory ? currentMemory.current : ticker;
+      newMemory.current = ticker;
+
+      const results = await beholder.updateMemory(
+        data.symbol,
+        indexKeys.TICKER,
+        null,
+        newMemory
+      );
+      // if (results) results.map((r) => sendMessage({ notification: r }));
+
+      // if (WSS && broadcastLabel) sendMessage({ [broadcastLabel]: data });
+      if (WSS && broadcastLabel) WSS.broadcast({ [broadcastLabel]: data });
+    } catch (err) {
+      if (logs) logger("M:" + monitorId, err);
+    }
+  });
+  logger("M:" + monitorId, `Ticker Monitor has started for ${symbol}`);
+}
+
+function getLightTicker(data) {
+  delete data.eventType;
+  delete data.eventTime;
+  delete data.symbol;
+  delete data.openTime;
+  delete data.closeTime;
+  delete data.firstTradeId;
+  delete data.lastTradeId;
+  delete data.numTrades;
+  delete data.closeQty;
+  delete data.bestBidQty;
+  delete data.bestAskQty;
+
+  data.quoteVolume = parseFloat(data.quoteVolume);
+  data.volume = parseFloat(data.volume);
+  data.priceChange = parseFloat(data.priceChange);
+  data.percentChange = parseFloat(data.percentChange);
+  data.averagePrice = parseFloat(data.averagePrice);
+  data.prevClose = parseFloat(data.prevClose);
+  data.high = parseFloat(data.high);
+  data.low = parseFloat(data.low);
+  data.open = parseFloat(data.open);
+  data.close = parseFloat(data.close);
+  data.bestBid = parseFloat(data.bestBid);
+  data.bestAsk = parseFloat(data.bestAsk);
+
+  return data;
+}
+
 function processExecutionData(monitorId, executionData, broadcastLabel) {
   if (executionData.x === orderStatus.NEW) return; //ignora as novas, pois podem ter vindo de outras fontes
 
@@ -389,6 +451,18 @@ async function processChartData(
   );
 }
 
+function stopTickerMonitor(monitorId, symbol, logs) {
+  if (!symbol)
+    return new Error(`Can't stop a Ticker Monitor without a symbol.`);
+  if (!exchange) return new Error("Exchange Monitor not initialized yet.");
+
+  exchange.terminateTickerStream(symbol);
+
+  if (logs) logger("M:" + monitorId, `Ticker Monitor ${symbol} stopped!`);
+
+  beholder.deleteMemory(symbol, indexKeys.TICKER);
+}
+
 async function init(settings, wssInstance, beholderInstance) {
   if (!settings || !beholderInstance)
     throw new Error(
@@ -447,4 +521,6 @@ module.exports = {
   init,
   startChartMonitor,
   stopChartMonitor,
+  startTickerMonitor,
+  stopTickerMonitor,
 };

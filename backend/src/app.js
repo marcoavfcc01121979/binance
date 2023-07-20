@@ -12,6 +12,7 @@ const symbolsRouter = require("./routers/symbolsRouter");
 const exchangeRouter = require("./routers/exchangeRouter");
 const ordersRouter = require("./routers/ordersRouter");
 const monitorsRouter = require("./routers/monitorsRouter");
+const automationsRouter = require("./routers/automationsRouter");
 const beholderRouter = require("./routers/beholderRouter");
 
 const authMiddlewares = require("./middlewares/authMiddlewares");
@@ -38,6 +39,8 @@ app.use("/exchange", authMiddlewares, exchangeRouter);
 app.use("/orders", authMiddlewares, ordersRouter);
 
 app.use("/monitors", authMiddlewares, monitorsRouter);
+
+app.use("/automations", authMiddlewares, automationsRouter);
 
 app.use("/beholder", authMiddlewares, beholderRouter);
 
