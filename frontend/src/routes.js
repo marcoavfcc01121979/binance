@@ -6,7 +6,7 @@ import Settings from "./private/Settings/Settings";
 import Dashboard from "./private/Dashboard/Dashboard";
 import Orders from "./private/Orders/Orders";
 import Monitors from "./private/Monitors/Monitors";
-
+import Automations from "./private/Automations/Automations";
 function Routes() {
   function PrivateRoute({ children, ...rest }) {
     // const isAuthenticated = localStorage.getItem("token");
@@ -34,6 +34,9 @@ function Routes() {
       </PrivateRoute>
       <PrivateRoute path="/monitors">
         <Monitors />
+      </PrivateRoute>
+      <PrivateRoute path="/automations">
+        <Automations />
       </PrivateRoute>
       <PrivateRoute path="/orders/:symbol?">
         <Orders />

@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize");
 const database = require("../db");
-const ActionModel = require("./actionModel");
-const GridModel = require("./gridModel");
+// const ActionModel = require("./actionModel");
+// const GridModel = require("./gridModel");
 
 const AutomationModel = database.define(
   "automation",
@@ -28,7 +28,7 @@ const AutomationModel = database.define(
       type: Sequelize.STRING,
       allowNull: false,
     },
-    schedule: Sequelize.STRING,
+    // schedule: Sequelize.STRING,
     isActive: {
       type: Sequelize.BOOLEAN,
       allowNull: false,
@@ -52,12 +52,12 @@ const AutomationModel = database.define(
   }
 );
 
-AutomationModel.hasMany(ActionModel, {
-  foreignKey: "automationId",
-});
+// AutomationModel.hasMany(ActionModel, {
+//   foreignKey: "automationId",
+// });
 
-AutomationModel.hasMany(GridModel, {
-  foreignKey: "automationId",
-});
+// AutomationModel.hasMany(GridModel, {
+//   foreignKey: "automationId",
+// });
 
 module.exports = AutomationModel;
