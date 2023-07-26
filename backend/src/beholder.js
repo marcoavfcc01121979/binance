@@ -82,6 +82,57 @@ function getMemory(symbol, index, interval) {
   return { ...MEMORY };
 }
 
+function flattenObject(ob) {
+  var toReturn = {};
+
+  for (var i in ob) {
+    if (!ob.hasOwnProperty(i)) continue;
+
+    if (typeof ob[i] == "object" && ob[i] !== null) {
+      var flatObject = flattenObject(ob[i]);
+      for (var x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+
+        toReturn[i + "." + x] = flatObject[x];
+      }
+    } else {
+      toReturn[i] = ob[i];
+    }
+  }
+  return toReturn;
+}
+
+function getEval(prop) {
+  if (prop.indexOf("MEMORY") !== -1) return prop;
+  if (prop.indexOf(".") === -1) return `MEMORY['${prop}']`;
+
+  const propSplit = prop.split(".");
+  const memKey = propSplit[0];
+  const memProp = prop.replace(memKey, "");
+  return `MEMORY['${memKey}']${memProp}`;
+}
+
+function getMemoryIndexes() {
+  return Object.entries(flattenObject(MEMORY))
+    .map((prop) => {
+      if (prop[0].indexOf("previous") !== -1 || prop[0].indexOf(":") === -1)
+        return false;
+      const propSplit = prop[0].split(":");
+      return {
+        symbol: propSplit[0],
+        variable: propSplit[1].replace(".current", ""),
+        eval: getEval(prop[0]),
+        example: prop[1],
+      };
+    })
+    .filter((ix) => ix)
+    .sort((a, b) => {
+      if (a.variable < b.variable) return -1;
+      if (a.variable > b.variable) return 1;
+      return 0;
+    });
+}
+
 function getBrain() {
   return { ...BRAIN };
 }
@@ -92,4 +143,5 @@ module.exports = {
   getMemory,
   getBrain,
   deleteMemory,
+  getMemoryIndexes,
 };
