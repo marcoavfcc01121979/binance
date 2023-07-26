@@ -1,6 +1,13 @@
 const MEMORY = {};
 
+let BRAIN = {};
+
+let LOCK_BRAIN = {};
+
+let BRAIN_INDEX = {};
+
 const LOGS = process.env.BEHOLDER_LOGS === "true";
+const INTERVAL = parseInt(process.env.AUTOMATION_INTERVAL || 0);
 
 let LOCK_MEMORY = false;
 
@@ -48,6 +55,181 @@ async function updateMemory(
   if (!executeAutomations) return false;
 
   // return testAutomations(memoryKey);
+}
+
+function invertCondition(memoryKey, conditions) {
+  const conds = conditions.split(" && ");
+  const condToInvert = conds.find(
+    (c) => c.indexOf(memoryKey) !== -1 && c.indexOf("current") !== -1
+  );
+  if (!condToInvert) return false;
+
+  if (condToInvert.indexOf(">=") != -1)
+    return condToInvert.replace(">=", "<").replace(/current/g, "previous");
+  if (condToInvert.indexOf("<=") != -1)
+    return condToInvert.replace("<=", ">").replace(/current/g, "previous");
+  if (condToInvert.indexOf(">") != -1)
+    return condToInvert.replace(">", "<").replace(/current/g, "previous");
+  if (condToInvert.indexOf("<") != -1)
+    return condToInvert.replace("<", ">").replace(/current/g, "previous");
+  if (condToInvert.indexOf("!") != -1)
+    return condToInvert.replace("!", "=").replace(/current/g, "previous");
+  if (condToInvert.indexOf("==") != -1)
+    return condToInvert.replace("==", "!==").replace(/current/g, "previous");
+  return false;
+}
+
+function shouldntInvert(automation, memoryKey) {
+  //return true;//descomente para desabilitar 'double check' (teste de condição invertida)
+  return (
+    ["GRID", "TRAILING"].includes(automation.actions[0].type) ||
+    automation.schedule ||
+    memoryKey.indexOf(":LAST_ORDER") !== -1 ||
+    memoryKey.indexOf(":LAST_CANDLE") !== -1 ||
+    memoryKey.indexOf(":PREVIOUS_CANDLE") !== -1
+  );
+}
+
+async function evalDecision(memoryKey, automation) {
+  if (!automation) return false;
+
+  try {
+    const indexes = automation.indexes ? automation.indexes.split(",") : [];
+
+    if (indexes.length) {
+      const isChecked = indexes.every(
+        (ix) => MEMORY[ix] !== null && MEMORY[ix] !== undefined
+      );
+      if (!isChecked) return false;
+
+      const invertedCondition = shouldntInvert(automation, memoryKey)
+        ? ""
+        : invertCondition(memoryKey, automation.conditions);
+      const evalCondition =
+        automation.conditions +
+        (invertedCondition ? " && " + invertedCondition : "");
+
+      if (LOGS)
+        logger(
+          "A:" + automation.id,
+          `Beholder trying to evaluate:\n${evalCondition}\n at ${automation.name}`
+        );
+
+      const isValid = evalCondition
+        ? Function("MEMORY", "return " + evalCondition)(MEMORY)
+        : true;
+      if (!isValid) return false;
+    }
+
+    if (!automation.actions || !automation.actions.length) {
+      if (LOGS || automation.logs)
+        logger(
+          "A:" + automation.id,
+          `No actions defined for automation ${automation.name}`
+        );
+      return false;
+    }
+
+    if (
+      (LOGS || automation.logs) &&
+      !["GRID", "TRAILING"].includes(automation.actions[0].type)
+    )
+      logger(
+        "A:" + automation.id,
+        `Beholder evaluated a condition at automation: ${automation.name} => ${automation.conditions}`
+      );
+
+    const settings = await getDefaultSettings();
+    const results = [];
+
+    for (let i = 0; i < automation.actions.length; i++) {
+      const action = automation.actions[i];
+      const result = await doAction(settings, action, automation);
+      if (!result || result.type === "error") break;
+
+      results.push(result);
+    }
+
+    if (automation.logs && results && results.length && results[0])
+      logger(
+        "A:" + automation.id,
+        `Automation ${
+          automation.name
+        } finished execution at ${new Date()}\nResults: ${JSON.stringify(
+          results
+        )}`
+      );
+
+    return results.flat();
+  } catch (err) {
+    if (automation.logs) logger("A:" + automation.id, err);
+    return {
+      type: "error",
+      text: `Error at evalDecision for '${automation.name}': ${err}`,
+    };
+  }
+}
+
+function findAutomations(indexKey) {
+  let ids = [];
+  if (BRAIN_INDEX.hasWildcard) {
+    const props = Object.entries(BRAIN_INDEX).filter((p) =>
+      indexKey.endsWith(p[0].replace("*", ""))
+    );
+    ids = props.map((p) => p[1]).flat();
+  } else ids = BRAIN_INDEX[indexKey];
+
+  if (!ids) return [];
+  return [...new Set(ids)].map((id) => BRAIN[id]);
+}
+
+function updateBrain(automation) {
+  if (!automation.isActive || !automation.conditions) return;
+
+  const actions = automation.actions
+    ? automation.actions.map((a) => {
+        a = a.toJSON ? a.toJSON() : a;
+        delete a.createdAt;
+        delete a.updatedAt;
+        //delete a.orderTemplate;
+        return a;
+      })
+    : [];
+
+  const grids = automation.grids
+    ? automation.grids.map((g) => {
+        g = g.toJSON ? g.toJSON() : g;
+        delete g.createdAt;
+        delete g.updatedAt;
+        delete g.automationId;
+        if (g.orderTemplate) {
+          delete g.orderTemplate.createdAt;
+          delete g.orderTemplate.updatedAt;
+          delete g.orderTemplate.name;
+        }
+        return g;
+      })
+    : [];
+
+  if (automation.toJSON) automation = automation.toJSON();
+
+  delete automation.createdAt;
+  delete automation.updatedAt;
+
+  automation.actions = actions;
+  automation.grids = grids;
+
+  BRAIN[automation.id] = automation;
+  automation.indexes
+    .split(",")
+    .map((ix) => updateBrainIndex(ix, automation.id));
+}
+
+function updateBrainIndex(index, automationId) {
+  if (!BRAIN_INDEX[index]) BRAIN_INDEX[index] = [];
+  BRAIN_INDEX[index].push(automationId);
+
+  if (index.startsWith("*")) BRAIN_INDEX.hasWildcard = true;
 }
 
 function deleteMemory(symbol, index, interval) {
@@ -133,6 +315,39 @@ function getMemoryIndexes() {
     });
 }
 
+function deleteBrainIndex(indexes, automationId) {
+  if (typeof indexes === "string") indexes = indexes.split(",");
+  indexes.forEach((ix) => {
+    if (!BRAIN_INDEX[ix] || BRAIN_INDEX[ix].length === 0) return;
+    const pos = BRAIN_INDEX[ix].findIndex((id) => id === automationId);
+    BRAIN_INDEX[ix].splice(pos, 1);
+  });
+
+  if (BRAIN_INDEX.hasWildcard)
+    BRAIN_INDEX.hasWildcard = Object.entries(BRAIN_INDEX).some((p) =>
+      p[0].startsWith("*")
+    );
+}
+
+function deleteBrain(automation) {
+  try {
+    setLocked(automation.id, true);
+    delete BRAIN[automation.id];
+    deleteBrainIndex(automation.indexes.split(","), automation.id);
+    if (automation.logs)
+      logger(
+        "A:" + automation.id,
+        `Automation removed from BRAIN #${automation.id}`
+      );
+  } finally {
+    setLocked(automation.id, false);
+  }
+}
+
+function getBrainIndexes() {
+  return { ...BRAIN_INDEX };
+}
+
 function getBrain() {
   return { ...BRAIN };
 }
@@ -144,4 +359,7 @@ module.exports = {
   getBrain,
   deleteMemory,
   getMemoryIndexes,
+  getBrainIndexes,
+  deleteBrain,
+  updateBrain,
 };

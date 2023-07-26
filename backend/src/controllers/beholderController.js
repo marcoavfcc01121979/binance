@@ -10,6 +10,10 @@ function getMemoryIndexes(req, res, next) {
   res.json(beholder.getMemoryIndexes());
 }
 
+function getBrainIndexes(req, res, next) {
+  res.json(beholder.getBrainIndexes());
+}
+
 function getBrain(req, res, next) {
   res.json(beholder.getBrain());
 }
@@ -22,7 +26,7 @@ module.exports = {
   getMemory,
   getMemoryIndexes,
   getBrain,
-  // getBrainIndexes,
+  getBrainIndexes,
   getAnalysisIndexes,
   // getAgenda,
   // init
