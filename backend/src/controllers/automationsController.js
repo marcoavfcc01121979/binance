@@ -1,6 +1,6 @@
 const automationsRepository = require("../repositories/automationsRepository");
-// const actionsRepository = require('../repositories/actionsRepository');
-// const gridsRepository = require('../repositories/gridsRepository');
+const actionsRepository = require("../repositories/actionsRepository");
+const gridsRepository = require("../repositories/gridsRepository");
 // const orderTemplatesRepository = require('../repositories/orderTemplatesRepository');
 // const ordersRepository = require('../repositories/ordersRepository');
 const beholder = require("../beholder");

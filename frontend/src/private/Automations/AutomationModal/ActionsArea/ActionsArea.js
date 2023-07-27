@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-// import ActionBadge from './ActionBadge';
-// import ActionType from './ActionType';
+import ActionBadge from "./ActionBadge";
+import ActionType from "./ActionType";
 // import { getAllOrderTemplates } from '../../../../services/OrderTemplatesService';
 // import { getWithdrawTemplates } from '../../../../services/WithdrawTemplatesService';
 import { getSymbol } from "../../../../services/SymbolsService";
@@ -129,7 +129,7 @@ function ActionsArea(props) {
       <div className="row">
         <div className="col-12 my-3">
           <div className="input-group input-group-merge">
-            {/* <ActionType type={newAction.type} onChange={onInputChange} /> */}
+            <ActionType type={newAction.type} onChange={onInputChange} />
             {newAction.type === "ORDER" && orderTemplates ? (
               <select
                 id="orderTemplateId"
@@ -206,13 +206,13 @@ function ActionsArea(props) {
       {actions && actions.length > 0 ? (
         <div className="divScrollBadges">
           <div className="d-inline-flex flex-row align-content-start">
-            {/* {actions.map((action) => (
+            {actions.map((action) => (
               <ActionBadge
                 key={action.type + ":" + action.id}
                 action={action}
                 onClick={onRemoveActionClick}
               />
-            ))} */}
+            ))}
           </div>
         </div>
       ) : (

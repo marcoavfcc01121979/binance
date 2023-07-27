@@ -53,6 +53,18 @@ async function updateOrderByOrderId(orderId, clientOrderId, newOrder) {
   return updateOrder(order, newOrder);
 }
 
+async function getLastFilledOrders() {
+  const idObjects = await orderModel.findAll({
+    where: { status: orderStatus.FILLED },
+    group: "symbol",
+    attributes: [Sequelize.fn("max", Sequelize.col("id"))],
+    raw: true,
+  });
+  const ids = idObjects.map((o) => Object.values(o)).flat();
+
+  return orderModel.findAll({ where: { id: ids } });
+}
+
 async function updateOrder(currentOrder, newOrder) {
   if (!currentOrder || !newOrder) return false;
 
@@ -108,4 +120,5 @@ module.exports = {
   getOrderById,
   updateOrderById,
   updateOrderByOrderId,
+  getLastFilledOrders,
 };

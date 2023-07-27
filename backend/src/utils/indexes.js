@@ -1,6 +1,7 @@
 const technicalindicators = require("technicalindicators");
 
 const indexKeys = {
+  //CANDLES PATTERNS
   INSIDE_CANDLE: "INSIDE-CANDLE",
   ABANDONED_BABY: "ABANDONED-BABY",
   BEARISH_ENGULFING: "BEAR-ENGULF",
@@ -195,89 +196,6 @@ function getAnalysisIndexes() {
   };
 }
 
-function RSI(closes, period = 14) {
-  period = parseInt(period);
-  if (closes.length <= period) return { current: false, previous: false };
-
-  const rsiResult = technicalindicators.rsi({
-    period,
-    values: closes,
-  });
-  return {
-    current: parseFloat(rsiResult[rsiResult.length - 1]),
-    previous: parseFloat(rsiResult[rsiResult.length - 2]),
-  };
-}
-
-function MACD(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-  fastPeriod = parseInt(fastPeriod);
-  slowPeriod = parseInt(slowPeriod);
-  signalPeriod = parseInt(signalPeriod);
-
-  if ([fastPeriod, slowPeriod, signalPeriod].some((p) => p >= closes.length))
-    return { current: false, previous: false };
-
-  const macdResult = technicalindicators.macd({
-    values: closes,
-    SimpleMAOscillator: false,
-    SimpleMASignal: false,
-    fastPeriod,
-    slowPeriod,
-    signalPeriod,
-  });
-  return {
-    current: macdResult[macdResult.length - 1],
-    previous: macdResult[macdResult.length - 2],
-  };
-}
-
-function StochRSI(
-  closes,
-  dPeriod = 3,
-  kPeriod = 3,
-  rsiPeriod = 14,
-  stochasticPeriod = 14
-) {
-  dPeriod = parseInt(dPeriod);
-  kPeriod = parseInt(kPeriod);
-  rsiPeriod = parseInt(rsiPeriod);
-  stochasticPeriod = parseInt(stochasticPeriod);
-
-  if (
-    [dPeriod, kPeriod, rsiPeriod, stochasticPeriod].some(
-      (p) => p >= closes.length
-    )
-  )
-    return { current: false, previous: false };
-
-  const stochResult = technicalindicators.stochasticrsi({
-    dPeriod,
-    kPeriod,
-    rsiPeriod,
-    stochasticPeriod,
-    values: closes,
-  });
-  return {
-    current: stochResult[stochResult.length - 1],
-    previous: stochResult[stochResult.length - 2],
-  };
-}
-
-function bollingerBands(closes, period = 20, stdDev = 2) {
-  period = parseInt(period);
-  if (closes.length <= period) return { current: false, previous: false };
-
-  const bbResult = technicalindicators.bollingerbands({
-    period,
-    stdDev: parseInt(stdDev),
-    values: closes,
-  });
-  return {
-    current: bbResult[bbResult.length - 1],
-    previous: bbResult[bbResult.length - 2],
-  };
-}
-
 function execCalc(indexName, ohlc, ...params) {
   switch (indexName) {
     case indexKeys.INSIDE_CANDLE:
@@ -407,6 +325,694 @@ function execCalc(indexName, ohlc, ...params) {
   }
 }
 
+function getInsideCandle(ohlc, last, bars) {
+  let hasInsideCandle =
+    ohlc.high[last] < ohlc.high[last - 1] &&
+    ohlc.low[last] > ohlc.low[last - 1];
+  if (hasInsideCandle && bars > 1) {
+    for (let i = 1; i < bars; i++)
+      hasInsideCandle =
+        hasInsideCandle &&
+        ohlc.high[last - i] < ohlc.high[last - i - 1] &&
+        ohlc.low[last - i] > ohlc.low[last - i - 1];
+  }
+  return hasInsideCandle;
+}
+
+function insideCandle(ohlc, bars = 1) {
+  const current = getInsideCandle(ohlc, ohlc.high.length - 1, bars);
+  const previous = getInsideCandle(ohlc, ohlc.high.length - 2, bars);
+  return { current, previous };
+}
+
+function abandonedBaby(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.abandonedbaby(input);
+}
+
+function bullishEngulfing(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bullishengulfingpattern(input);
+}
+
+function bearishEngulfing(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bearishengulfingpattern(input);
+}
+
+function darkCloudCover(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.darkcloudcover(input);
+}
+
+function downsideTasukiGap(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.downsidetasukigap(input);
+}
+
+function doji(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.doji(input);
+}
+
+function dragonflyDoji(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.dragonflydoji(input);
+}
+
+function graveStoneDoji(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.gravestonedoji(input);
+}
+
+function bearishHarami(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bearishharami(input);
+}
+
+function bullishHarami(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bullishharami(input);
+}
+
+function bullishHaramiCross(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bullishharamicross(input);
+}
+
+function bearishHaramiCross(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.bearishharamicross(input);
+}
+
+function bullishMarubozu(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bullishmarubozu(input);
+}
+
+function bearishMarubozu(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bearishmarubozu(input);
+}
+
+function eveningDojiStar(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.eveningdojistar(input);
+}
+
+function eveningStar(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.eveningstar(input);
+}
+
+function piercingLine(ohlc) {
+  const input = getTwoCandles(ohlc);
+  return technicalindicators.piercingline(input);
+}
+
+function bullishSpinningTop(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bullishspinningtop(input);
+}
+
+function bearishSpinningTop(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bearishspinningtop(input);
+}
+
+function morningDojiStar(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.morningdojistar(input);
+}
+
+function morningStar(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.morningstar(input);
+}
+
+function threeBlackCrows(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.threeblackcrows(input);
+}
+
+function threeWhiteSoldiers(ohlc) {
+  const input = getThreeCandles(ohlc);
+  return technicalindicators.threewhitesoldiers(input);
+}
+
+function bullishHammer(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bullishhammerstick(input);
+}
+
+function bearishHammer(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bearishhammerstick(input);
+}
+
+function bearishInvertedHammer(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bearishinvertedhammerstick(input);
+}
+
+function bullishInvertedHammer(ohlc) {
+  const input = getOneCandle(ohlc);
+  return technicalindicators.bullishinvertedhammerstick(input);
+}
+
+function hammer(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.hammerpattern(input);
+}
+
+function hammerUnconfirmed(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.hammerpatternunconfirmed(input);
+}
+
+function hangingMan(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.hangingman(input);
+}
+
+function hangingManUnconfirmed(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.hangingmanunconfirmed(input);
+}
+
+function shootingStar(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.shootingstar(input);
+}
+
+function shootingStarUnconfirmed(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.shootingstarunconfirmed(input);
+}
+
+function tweezerTop(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.tweezertop(input);
+}
+
+function tweezerBottom(ohlc) {
+  const input = getFiveCandles(ohlc);
+  return technicalindicators.tweezerbottom(input);
+}
+
+function getFiveCandles(ohlc) {
+  const last = ohlc.high.length - 1;
+  return {
+    open: [
+      ohlc.open[last],
+      ohlc.open[last - 1],
+      ohlc.open[last - 2],
+      ohlc.open[last - 3],
+      ohlc.open[last - 4],
+    ],
+    close: [
+      ohlc.close[last],
+      ohlc.close[last - 1],
+      ohlc.close[last - 2],
+      ohlc.close[last - 3],
+      ohlc.close[last - 4],
+    ],
+    high: [
+      ohlc.high[last],
+      ohlc.high[last - 1],
+      ohlc.high[last - 2],
+      ohlc.high[last - 3],
+      ohlc.high[last - 4],
+    ],
+    low: [
+      ohlc.low[last],
+      ohlc.low[last - 1],
+      ohlc.low[last - 2],
+      ohlc.low[last - 3],
+      ohlc.low[last - 4],
+    ],
+    volume: [
+      ohlc.volume[last],
+      ohlc.volume[last - 1],
+      ohlc.volume[last - 2],
+      ohlc.volume[last - 3],
+      ohlc.volume[last - 4],
+    ],
+  };
+}
+
+function getThreeCandles(ohlc) {
+  const last = ohlc.high.length - 1;
+  return {
+    open: [ohlc.open[last], ohlc.open[last - 1], ohlc.open[last - 2]],
+    close: [ohlc.close[last], ohlc.close[last - 1], ohlc.close[last - 2]],
+    high: [ohlc.high[last], ohlc.high[last - 1], ohlc.high[last - 2]],
+    low: [ohlc.low[last], ohlc.low[last - 1], ohlc.low[last - 2]],
+    volume: [ohlc.volume[last], ohlc.volume[last - 1], ohlc.volume[last - 2]],
+  };
+}
+
+function getTwoCandles(ohlc) {
+  const last = ohlc.high.length - 1;
+  return {
+    open: [ohlc.open[last], ohlc.open[last - 1]],
+    close: [ohlc.close[last], ohlc.close[last - 1]],
+    high: [ohlc.high[last], ohlc.high[last - 1]],
+    low: [ohlc.low[last], ohlc.low[last - 1]],
+    volume: [ohlc.volume[last], ohlc.volume[last - 1]],
+  };
+}
+
+function getOneCandle(ohlc) {
+  const last = ohlc.high.length - 1;
+  return {
+    open: [ohlc.open[last]],
+    close: [ohlc.close[last]],
+    high: [ohlc.high[last]],
+    low: [ohlc.low[last]],
+    volume: [ohlc.volume[last]],
+  };
+}
+
+function ADL(ohlc) {
+  const adlResult = technicalindicators.adl(ohlc);
+  return {
+    current: adlResult[adlResult.length - 1],
+    previous: adlResult[adlResult.length - 2],
+  };
+}
+
+function ADX(ohlc, period = 14) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const adxResult = technicalindicators.adx({
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    period,
+  });
+  return {
+    current: adxResult[adxResult.length - 1],
+    previous: adxResult[adxResult.length - 2],
+  };
+}
+
+function ATR(ohlc, period = 14) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const atrResult = technicalindicators.atr({
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    period,
+  });
+  return {
+    current: atrResult[atrResult.length - 1],
+    previous: atrResult[atrResult.length - 2],
+  };
+}
+
+function AO(ohlc, fastPeriod = 5, slowPeriod = 34) {
+  fastPeriod = parseInt(fastPeriod);
+  slowPeriod = parseInt(slowPeriod);
+  if ([fastPeriod, slowPeriod].some((p) => p >= ohlc.high.length))
+    return { current: false, previous: false };
+
+  const aoResult = technicalindicators.awesomeoscillator({
+    high: ohlc.high,
+    low: ohlc.low,
+    fastPeriod,
+    slowPeriod,
+  });
+  return {
+    current: aoResult[aoResult.length - 1],
+    previous: aoResult[aoResult.length - 2],
+  };
+}
+
+function CCI(ohlc, period = 20) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const cciResult = technicalindicators.cci({
+    open: ohlc.open,
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    period,
+  });
+  return {
+    current: cciResult[cciResult.length - 1],
+    previous: cciResult[cciResult.length - 2],
+  };
+}
+
+function FI(ohlc, period = 1) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const fiResult = technicalindicators.forceindex({
+    open: ohlc.open,
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    volume: ohlc.volume,
+    period,
+  });
+  return {
+    current: fiResult[fiResult.length - 1],
+    previous: fiResult[fiResult.length - 2],
+  };
+}
+
+function KST(
+  closes,
+  ROCPer1 = 10,
+  ROCPer2 = 15,
+  ROCPer3 = 20,
+  ROCPer4 = 30,
+  SMAROCPer1 = 10,
+  SMAROCPer2 = 10,
+  SMAROCPer3 = 10,
+  SMAROCPer4 = 15,
+  signal = 3
+) {
+  ROCPer1 = parseInt(ROCPer1);
+  ROCPer2 = parseInt(ROCPer2);
+  ROCPer3 = parseInt(ROCPer3);
+  ROCPer4 = parseInt(ROCPer4);
+  SMAROCPer1 = parseInt(SMAROCPer1);
+  SMAROCPer2 = parseInt(SMAROCPer2);
+  SMAROCPer3 = parseInt(SMAROCPer3);
+  SMAROCPer4 = parseInt(SMAROCPer4);
+
+  if (
+    [
+      ROCPer1,
+      ROCPer2,
+      ROCPer3,
+      ROCPer4,
+      SMAROCPer1,
+      SMAROCPer2,
+      SMAROCPer3,
+      SMAROCPer4,
+    ].some((p) => p >= closes.length)
+  )
+    return { current: false, previous: false };
+
+  const kstResult = technicalindicators.kst({
+    values: closes,
+    ROCPer1,
+    ROCPer2,
+    ROCPer3,
+    ROCPer4,
+    SMAROCPer1,
+    SMAROCPer2,
+    SMAROCPer3,
+    SMAROCPer4,
+    signalPeriod: parseInt(signal),
+  });
+  return {
+    current: kstResult[kstResult.length - 1],
+    previous: kstResult[kstResult.length - 2],
+  };
+}
+
+function MFI(ohlc, period = 14) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const mfiResult = technicalindicators.mfi({
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    volume: ohlc.volume,
+    period,
+  });
+  return {
+    current: mfiResult[mfiResult.length - 1],
+    previous: mfiResult[mfiResult.length - 2],
+  };
+}
+
+function OBV(ohlc) {
+  const obvResult = technicalindicators.obv({
+    close: ohlc.close,
+    volume: ohlc.volume,
+  });
+  return {
+    current: obvResult[obvResult.length - 1],
+    previous: obvResult[obvResult.length - 2],
+  };
+}
+
+function PSAR(ohlc, step, max) {
+  const psarResult = technicalindicators.psar({
+    high: ohlc.high,
+    low: ohlc.low,
+    step: parseFloat(step) || 0.02,
+    max: parseFloat(max) || 0.2,
+  });
+  return {
+    current: psarResult[psarResult.length - 1],
+    previous: psarResult[psarResult.length - 2],
+  };
+}
+
+function ROC(closes, period = 12) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const rocResult = technicalindicators.roc({
+    period,
+    values: closes,
+  });
+  return {
+    current: rocResult[rocResult.length - 1],
+    previous: rocResult[rocResult.length - 2],
+  };
+}
+
+function Stochastic(ohlc, period = 14, signal = 3) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const stochResult = technicalindicators.stochastic({
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    period,
+    signalPeriod: signal,
+  });
+  return {
+    current: stochResult[stochResult.length - 1],
+    previous: stochResult[stochResult.length - 2],
+  };
+}
+
+function TRIX(closes, period = 18) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const trixResult = technicalindicators.trix({
+    period,
+    values: closes,
+  });
+  return {
+    current: trixResult[trixResult.length - 1],
+    previous: trixResult[trixResult.length - 2],
+  };
+}
+
+function VWAP(ohlc) {
+  const vwapResult = technicalindicators.vwap(ohlc);
+  return {
+    current: vwapResult[vwapResult.length - 1],
+    previous: vwapResult[vwapResult.length - 2],
+  };
+}
+
+function VP(ohlc, bars = 14) {
+  bars = parseInt(bars);
+  if (ohlc.close.length <= bars) return { current: false, previous: false };
+
+  const vpResult = technicalindicators.volumeprofile({
+    open: ohlc.open,
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    volume: ohlc.volume,
+    noOfBars: bars,
+  });
+  return {
+    current: vpResult[vpResult.length - 1],
+    previous: vpResult[vpResult.length - 2],
+  };
+}
+
+function williamsR(ohlc, period = 14) {
+  period = parseInt(period);
+  if (ohlc.close.length <= period) return { current: false, previous: false };
+
+  const wrResult = technicalindicators.williamsr({
+    open: ohlc.open,
+    high: ohlc.high,
+    low: ohlc.low,
+    close: ohlc.close,
+    period,
+  });
+  return {
+    current: wrResult[wrResult.length - 1],
+    previous: wrResult[wrResult.length - 2],
+  };
+}
+
+function ichimoku(
+  ohlc,
+  conversionPeriod = 9,
+  basePeriod = 26,
+  span = 52,
+  displacement = 26
+) {
+  conversionPeriod = parseInt(conversionPeriod);
+  basePeriod = parseInt(basePeriod);
+  span = parseInt(span);
+  displacement = parseInt(displacement);
+
+  if (
+    [conversionPeriod, basePeriod, span, displacement].some(
+      (p) => p >= ohlc.high.length
+    )
+  )
+    return { current: false, previous: false };
+
+  const ichimokuResult = technicalindicators.ichimokucloud({
+    high: ohlc.high,
+    low: ohlc.low,
+    conversionPeriod,
+    basePeriod,
+    span,
+    displacement,
+  });
+  return {
+    current: ichimokuResult[ichimokuResult.length - 1],
+    previous: ichimokuResult[ichimokuResult.length - 2],
+  };
+}
+
+function WMA(closes, period = 8) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const wmaResult = technicalindicators.wma({
+    period,
+    values: closes,
+  });
+  return {
+    current: wmaResult[wmaResult.length - 1],
+    previous: wmaResult[wmaResult.length - 2],
+  };
+}
+
+function WEMA(closes, period = 5) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const wemaResult = technicalindicators.wema({
+    period,
+    values: closes,
+  });
+  return {
+    current: wemaResult[wemaResult.length - 1],
+    previous: wemaResult[wemaResult.length - 2],
+  };
+}
+
+function RSI(closes, period = 14) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const rsiResult = technicalindicators.rsi({
+    period,
+    values: closes,
+  });
+  return {
+    current: parseFloat(rsiResult[rsiResult.length - 1]),
+    previous: parseFloat(rsiResult[rsiResult.length - 2]),
+  };
+}
+
+function MACD(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  fastPeriod = parseInt(fastPeriod);
+  slowPeriod = parseInt(slowPeriod);
+  signalPeriod = parseInt(signalPeriod);
+
+  if ([fastPeriod, slowPeriod, signalPeriod].some((p) => p >= closes.length))
+    return { current: false, previous: false };
+
+  const macdResult = technicalindicators.macd({
+    values: closes,
+    SimpleMAOscillator: false,
+    SimpleMASignal: false,
+    fastPeriod,
+    slowPeriod,
+    signalPeriod,
+  });
+  return {
+    current: macdResult[macdResult.length - 1],
+    previous: macdResult[macdResult.length - 2],
+  };
+}
+
+function StochRSI(
+  closes,
+  dPeriod = 3,
+  kPeriod = 3,
+  rsiPeriod = 14,
+  stochasticPeriod = 14
+) {
+  dPeriod = parseInt(dPeriod);
+  kPeriod = parseInt(kPeriod);
+  rsiPeriod = parseInt(rsiPeriod);
+  stochasticPeriod = parseInt(stochasticPeriod);
+
+  if (
+    [dPeriod, kPeriod, rsiPeriod, stochasticPeriod].some(
+      (p) => p >= closes.length
+    )
+  )
+    return { current: false, previous: false };
+
+  const stochResult = technicalindicators.stochasticrsi({
+    dPeriod,
+    kPeriod,
+    rsiPeriod,
+    stochasticPeriod,
+    values: closes,
+  });
+  return {
+    current: stochResult[stochResult.length - 1],
+    previous: stochResult[stochResult.length - 2],
+  };
+}
+
+function bollingerBands(closes, period = 20, stdDev = 2) {
+  period = parseInt(period);
+  if (closes.length <= period) return { current: false, previous: false };
+
+  const bbResult = technicalindicators.bollingerbands({
+    period,
+    stdDev: parseInt(stdDev),
+    values: closes,
+  });
+  return {
+    current: bbResult[bbResult.length - 1],
+    previous: bbResult[bbResult.length - 2],
+  };
+}
+
 function SMA(closes, period = 10) {
   period = parseInt(period);
   if (closes.length <= period) return { current: false, previous: false };
@@ -436,13 +1042,7 @@ function EMA(closes, period = 10) {
 }
 
 module.exports = {
-  RSI,
-  MACD,
-  StochRSI,
-  bollingerBands,
-  SMA,
-  EMA,
   indexKeys,
-  getAnalysisIndexes,
   execCalc,
+  getAnalysisIndexes,
 };

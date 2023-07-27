@@ -1,4 +1,6 @@
 const Binance = require("node-binance-api");
+const logger = require("./logger");
+const LOGS = process.env.BINANCE_LOGS === "true";
 
 module.exports = (settings) => {
   if (!settings)
@@ -67,12 +69,12 @@ module.exports = (settings) => {
         const tick = binance.last(chart);
         const isIncomplete =
           tick && chart[tick] && chart[tick].isFinal === false;
-        // if (
-        //   (!process.env.INCOMPLETE_CANDLES ||
-        //     process.env.INCOMPLETE_CANDLES === "false") &&
-        //   isIncomplete
-        // )
-        return;
+        if (
+          (!process.env.INCOMPLETE_CANDLES ||
+            process.env.INCOMPLETE_CANDLES === "false") &&
+          isIncomplete
+        )
+          return;
 
         const ohlc = binance.ohlc(chart);
         ohlc.isComplete = !isIncomplete;
@@ -80,7 +82,7 @@ module.exports = (settings) => {
         callback(ohlc);
       }
     );
-    // if (LOGS) logger("system", `Chart Stream connected at ${streamUrl}`);
+    if (LOGS) logger("system", `Chart Stream connected at ${streamUrl}`);
   }
 
   function userDataStream(
