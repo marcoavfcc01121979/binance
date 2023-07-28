@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize");
 const database = require("../db");
-const OrderTemplateModel = require("./orderTemplateModel");
-const WithdrawTemplateModel = require("./withdrawTemplateModel");
+// const OrderTemplateModel = require("./orderTemplateModel");
+// const WithdrawTemplateModel = require("./withdrawTemplateModel");
 
 const ActionModel = database.define("action", {
   id: {

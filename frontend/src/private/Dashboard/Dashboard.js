@@ -11,6 +11,8 @@ import CandleChart from "./CandleChart";
 import SelectSymbol from "../../components/SelectSymbol/SelectSymbol";
 import Footer from "../../components/Footer/Footer";
 
+import Toast from "../../components/Toast/Toast";
+
 function Dashboard() {
   const history = useHistory();
 
@@ -23,6 +25,8 @@ function Dashboard() {
   const [wallet, setWallet] = useState({});
 
   const [chartSymbol, setChartSymbol] = useState("BTCUSDT");
+
+  const [notification, setNotification] = useState({ type: "", text: "" });
 
   function onWalletUpdate(walletObj) {
     setWallet(walletObj);
@@ -51,6 +55,10 @@ function Dashboard() {
     queryParams: { token: localStorage.getItem("token") },
     onError: (event) => {
       console.error(event);
+      return setNotification({
+        type: "error",
+        text: event.message,
+      });
     },
     shouldReconnect: (closeEvent) => true,
     reconnectInterval: 3000,
@@ -90,6 +98,7 @@ function Dashboard() {
         <Footer />
       </main>
       <NewOrderModal wallet={wallet} onSubmit={onOrderSubmit} />
+      <Toast type={notification.type} text={notification.text} />
     </React.Fragment>
   );
 }

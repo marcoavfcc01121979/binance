@@ -5,6 +5,7 @@ import Menu from "../../components/Menu/Menu";
 import Symbols from "./Symbols";
 // import Symbols from "../Settings/Symbols";
 import Footer from "../../components/Footer/Footer";
+import Toast from "../../components/Toast/Toast";
 
 function Settings() {
   const inputEmail = useRef("");
@@ -17,10 +18,7 @@ function Settings() {
 
   const history = useHistory();
 
-  const [error, setError] = useState("");
-
-  const [success, setSuccess] = useState("");
-
+  const [notification, setNotification] = useState({ type: "", text: "" });
   useEffect(() => {
     const token = localStorage.getItem("token");
     getSettings(token)
@@ -34,7 +32,11 @@ function Settings() {
         if (err.response && err.response.status === 401)
           return history.push("/");
 
-        setError(err.response ? err.response.data : err.message);
+        setNotification({
+          type: "error",
+          text: err.response ? err.response.data : err.message,
+        });
+        // setError(err.response ? err.response.data : err.message);
       });
   }, []);
 
@@ -45,9 +47,13 @@ function Settings() {
       (inputNewPassword.current.value || inputConfirmPassword.current.value) &&
       inputNewPassword.current.value !== inputConfirmPassword.current.value
     )
-      return setError(
-        `The fields New Password and Confirm Password must be equal.`
-      );
+      // return setError(
+      //   `The fields New Password and Confirm Password must be equal.`
+      // );
+      return setNotification({
+        type: "error",
+        text: `The fields New Password and Confirm Password must be equal.`,
+      });
 
     const token = localStorage.getItem("token");
     updateSettings(
@@ -67,19 +73,29 @@ function Settings() {
     )
       .then((result) => {
         if (result) {
-          setError("");
           inputSecretKey.current.value = "";
           inputNewPassword.current.value = "";
           inputConfirmPassword.current.value = "";
-          return setSuccess(`Settings saved successfully!`);
+          // return setSuccess(`Settings saved successfully!`);
+          return setNotification({
+            type: "error",
+            text: `Settings saved successfully!`,
+          });
         } else {
-          setSuccess("");
-          return setError(`Can't update the settings.`);
+          // return setError(`Can't update the settings.`);
+          return setNotification({
+            type: "error",
+            text: `Can't update the settings.`,
+          });
         }
       })
       .catch((err) => {
         console.error(err.response ? err.response.data : err.message);
-        return setError(`Can't update the settings.`);
+        // return setError(`Can't update the settings.`);
+        return setNotification({
+          type: "error",
+          text: `Can't update the settings.`,
+        });
       });
   }
 
@@ -205,20 +221,6 @@ function Settings() {
                         Save all
                       </button>
                     </div>
-                    {error ? (
-                      <div className="alert alert-danger mt-2 col-9 py-2">
-                        {error}
-                      </div>
-                    ) : (
-                      <React.Fragment></React.Fragment>
-                    )}
-                    {success ? (
-                      <div className="alert alert-success mt-2 col-9 py-2">
-                        {success}
-                      </div>
-                    ) : (
-                      <React.Fragment></React.Fragment>
-                    )}
                   </div>
                 </div>
               </form>
@@ -228,6 +230,7 @@ function Settings() {
         <Symbols />
         <Footer />
       </main>
+      <Toast type={notification.type} text={notification.text} />
     </React.Fragment>
   );
 }

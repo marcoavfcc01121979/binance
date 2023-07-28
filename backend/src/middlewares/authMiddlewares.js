@@ -13,7 +13,7 @@ module.exports = (req, res, next) => {
         }
       }
     } catch (error) {
-      console.error(err);
+      console.error(error);
     }
   }
 

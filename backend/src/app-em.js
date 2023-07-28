@@ -229,62 +229,62 @@
 //   return data;
 // }
 
-// function processExecutionData(monitorId, executionData, broadcastLabel) {
-//   if (executionData.x === orderStatus.NEW) return; //ignora as novas, pois podem ter vindo de outras fontes
+ function processExecutionData(monitorId, executionData, broadcastLabel) {
+   if (executionData.x === orderStatus.NEW) return; //ignora as novas, pois podem ter vindo de outras fontes
 
-//   const order = {
-//     symbol: executionData.s,
-//     orderId: executionData.i,
-//     clientOrderId:
-//       executionData.X === orderStatus.CANCELED
-//         ? executionData.C
-//         : executionData.c,
-//     side: executionData.S,
-//     type: executionData.o,
-//     status: executionData.X,
-//     isMaker: executionData.m,
-//     transactTime: executionData.T,
-//   };
+   const order = {
+     symbol: executionData.s,
+     orderId: executionData.i,
+     clientOrderId:
+       executionData.X === orderStatus.CANCELED
+         ? executionData.C
+         : executionData.c,
+     side: executionData.S,
+     type: executionData.o,
+     status: executionData.X,
+     isMaker: executionData.m,
+     transactTime: executionData.T,
+   };
 
-//   if (order.status === orderStatus.FILLED) {
-//     const quoteAmount = parseFloat(executionData.Z);
-//     order.avgPrice = quoteAmount / parseFloat(executionData.z);
-//     order.commission = executionData.n;
-//     order.quantity = executionData.q;
-//     const isQuoteCommission =
-//       executionData.N && order.symbol.endsWith(executionData.N);
-//     order.net = isQuoteCommission
-//       ? quoteAmount - parseFloat(order.commission)
-//       : quoteAmount;
-//   }
+   if (order.status === orderStatus.FILLED) {
+     const quoteAmount = parseFloat(executionData.Z);
+     order.avgPrice = quoteAmount / parseFloat(executionData.z);
+     order.commission = executionData.n;
+     order.quantity = executionData.q;
+     const isQuoteCommission =
+       executionData.N && order.symbol.endsWith(executionData.N);
+     order.net = isQuoteCommission
+       ? quoteAmount - parseFloat(order.commission)
+       : quoteAmount;
+   }
 
-//   if (order.status === orderStatus.REJECTED) order.obs = executionData.r;
+   if (order.status === orderStatus.REJECTED) order.obs = executionData.r;
 
-//   setTimeout(async () => {
-//     try {
-//       const updatedOrder = await ordersRepository.updateOrderByOrderId(
-//         order.orderId,
-//         order.clientOrderId,
-//         order
-//       );
-//       if (updatedOrder) {
-//         notifyOrderUpdate(order);
+   setTimeout(async () => {
+     try {
+       const updatedOrder = await ordersRepository.updateOrderByOrderId(
+         order.orderId,
+         order.clientOrderId,
+         order
+       );
+       if (updatedOrder) {
+         notifyOrderUpdate(order);
 
-//         const orderCopy = getLightOrder(updatedOrder.get({ plain: true }));
-//         const results = await beholder.updateMemory(
-//           order.symbol,
-//           indexKeys.LAST_ORDER,
-//           null,
-//           orderCopy
-//         );
-//         if (results) results.map((r) => sendMessage({ notification: r }));
-//         if (broadcastLabel) sendMessage({ [broadcastLabel]: order });
-//       }
-//     } catch (err) {
-//       logger("M:" + monitorId, err);
-//     }
-//   }, 3000);
-// }
+         const orderCopy = getLightOrder(updatedOrder.get({ plain: true }));
+         const results = await beholder.updateMemory(
+           order.symbol,
+           indexKeys.LAST_ORDER,
+           null,
+           orderCopy
+         );
+         if (results) results.map((r) => sendMessage({ notification: r }));
+         if (broadcastLabel) sendMessage({ [broadcastLabel]: order });
+       }
+     } catch (err) {
+       logger("M:" + monitorId, err);
+     }
+   }, 3000);
+ }
 
 // function stopChartMonitor(monitorId, symbol, interval, indexes, logs) {
 //   if (!symbol) return new Error(`Can't stop a Chart Monitor without a symbol.`);

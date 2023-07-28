@@ -11,7 +11,7 @@ import {
 } from "../../services/MonitorsService";
 import Pagination from "../../components/Pagination/Pagination";
 import MonitorModal from "./MonitorModal/MonitorModal";
-// import Toast from '../../components/Toast/Toast';
+import Toast from "../../components/Toast/Toast";
 // import LogModal from '../../components/Logs/LogModal';
 import NewMonitorButton from "./NewMonitorButton.js";
 import BeholderButton from "./Beholder/BeholderButton";
@@ -182,8 +182,8 @@ function Monitors() {
       </main>
       <MonitorModal data={editMonitor} onSubmit={onMonitorSubmit} />
       {/* <LogModal file={editMonitor.id > 0 ? "M:" + editMonitor.id : ""} />
-            <BeholderModal />
-            <Toast type={notification.type} text={notification.text} /> */}
+            <BeholderModal /> */}
+      <Toast type={notification.type} text={notification.text} />
     </React.Fragment>
   );
 }

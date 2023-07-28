@@ -12,7 +12,7 @@ import {
   deleteAutomation,
 } from "../../services/AutomationsService";
 import Pagination from "../../components/Pagination/Pagination";
-// import Toast from "../../components/Toast/Toast";
+import Toast from "../../components/Toast/Toast";
 import NewAutomationButton from "./NewAutomationButton";
 
 function Automations() {
@@ -178,8 +178,8 @@ function Automations() {
         <Footer />
       </main>
       <AutomationModal data={editAutomation} onSubmit={onAutomationSubmit} />
-      {/* <GridModal data={editAutomation} onSubmit={onAutomationSubmit} />
-      <Toast type={notification.type} text={notification.text} /> */}
+      {/* <GridModal data={editAutomation} onSubmit={onAutomationSubmit} /> */}
+      <Toast type={notification.type} text={notification.text} />
     </React.Fragment>
   );
 }
