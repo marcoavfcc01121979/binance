@@ -1,7 +1,7 @@
-const { getDefaultSettings } = require('./repositories/settingsRepository');
-const { actionTypes } = require('./repositories/actionsRepository');
+const { getDefaultSettings } = require("./repositories/settingsRepository");
+const { actionTypes } = require("./repositories/actionsRepository");
 
-const logger = require('./utils/logger');
+const logger = require("./utils/logger");
 
 const MEMORY = {};
 
@@ -34,50 +34,61 @@ function init(automations) {
 }
 
 async function testAutomations(memoryKey) {
-
   const automations = findAutomations(memoryKey);
 
-  if (!automations || !automations.length || isLocked(automations.filter(a => a).map(a => a.id))) {
-      if (LOGS) console.log(`Beholder has no automations for memoryKey: ${memoryKey} or the brain is locked!`);
-      return false;
+  if (
+    !automations ||
+    !automations.length ||
+    isLocked(automations.filter((a) => a).map((a) => a.id))
+  ) {
+    if (LOGS)
+      console.log(
+        `Beholder has no automations for memoryKey: ${memoryKey} or the brain is locked!`
+      );
+    return false;
   }
 
-  setLocked(automations.map(a => a.id), true);
+  setLocked(
+    automations.map((a) => a.id),
+    true
+  );
   let results;
 
   try {
-      const promises = automations.map(async (automation) => {
-          let auto = { ...automation };
+    const promises = automations.map(async (automation) => {
+      let auto = { ...automation };
 
-          if (auto.symbol.startsWith('*')) {
-              const symbol = memoryKey.split(':')[0];
-              auto.indexes = auto.indexes.replaceAll(auto.symbol, symbol);
-              auto.conditions = auto.conditions.replaceAll(auto.symbol, symbol);
-              if (auto.actions) {
-                  auto.actions.forEach(action => {
-                      if (action.orderTemplate)
-                          action.orderTemplate.symbol = symbol;
-                  })
-              }
-              auto.symbol = symbol;
-          }
+      if (auto.symbol.startsWith("*")) {
+        const symbol = memoryKey.split(":")[0];
+        auto.indexes = auto.indexes.replaceAll(auto.symbol, symbol);
+        auto.conditions = auto.conditions.replaceAll(auto.symbol, symbol);
+        if (auto.actions) {
+          auto.actions.forEach((action) => {
+            if (action.orderTemplate) action.orderTemplate.symbol = symbol;
+          });
+        }
+        auto.symbol = symbol;
+      }
 
-          return evalDecision(memoryKey, auto);
-      });
+      return evalDecision(memoryKey, auto);
+    });
 
-      results = await Promise.all(promises);
-      if (Array.isArray(results) && results.length)
-          results = results.flat().filter(r => r);
+    results = await Promise.all(promises);
+    if (Array.isArray(results) && results.length)
+      results = results.flat().filter((r) => r);
 
-      if (!results || (Array.isArray(results) && !results.length))
-          return false;
-      else
-          return results;
-  }
-  finally {
-      setTimeout(() => {
-          setLocked(automations.map(a => a.id), false);
-      }, results && results.length ? INTERVAL : 0)
+    if (!results || (Array.isArray(results) && !results.length)) return false;
+    else return results;
+  } finally {
+    setTimeout(
+      () => {
+        setLocked(
+          automations.map((a) => a.id),
+          false
+        );
+      },
+      results && results.length ? INTERVAL : 0
+    );
   }
 }
 
@@ -97,17 +108,17 @@ async function updateMemory(
   const memoryKey = parseMemoryKey(symbol, index, interval);
   MEMORY[memoryKey] = value;
 
-     if (LOGS)
-       logger(
-         "beholder",
-         `Beholder memory updated: ${memoryKey} => ${JSON.stringify(
-           value
-         )}, will exec autos? ${executeAutomations}`
-       );
+  if (LOGS)
+    logger(
+      "beholder",
+      `Beholder memory updated: ${memoryKey} => ${JSON.stringify(
+        value
+      )}, will exec autos? ${executeAutomations}`
+    );
 
   if (!executeAutomations) return false;
 
-   return testAutomations(memoryKey);
+  return testAutomations(memoryKey);
 }
 
 function invertCondition(memoryKey, conditions) {
@@ -143,24 +154,42 @@ function shouldntInvert(automation, memoryKey) {
   );
 }
 
-function doAction(settings, action, automation) {
+async function sendSms(settings, automation) {
+  await require("./utils/sms")(settings, automation.name + " has fired!");
+  if (automation.logs) logger("A:" + automation.id, `SMS sent!`);
+  return {
+    text: `SMS sent from automation '${automation.name}'`,
+    type: "success",
+  };
+}
 
+function doAction(settings, action, automation) {
   try {
-      switch (action.type) {
-          case actionTypes.ALERT_EMAIL: return sendEmail(settings, automation);
-          case actionTypes.ALERT_SMS: return sendSms(settings, automation);
-          case actionTypes.ALERT_TELEGRAM: return sendTelegram(settings, automation);
-          case actionTypes.ORDER: return placeOrder(settings, automation, action);
-          case actionTypes.TRAILING: return trailingEval(settings, automation, action);
-          case actionTypes.WITHDRAW: return withdrawCrypto(settings, automation, action);
-          case actionTypes.GRID: return gridEval(settings, automation);
-      }
+    switch (action.type) {
+      case actionTypes.ALERT_EMAIL:
+        return sendEmail(settings, automation);
+      case actionTypes.ALERT_SMS:
+        return sendSms(settings, automation);
+      case actionTypes.ALERT_TELEGRAM:
+        return sendTelegram(settings, automation);
+      case actionTypes.ORDER:
+        return placeOrder(settings, automation, action);
+      case actionTypes.TRAILING:
+        return trailingEval(settings, automation, action);
+      case actionTypes.WITHDRAW:
+        return withdrawCrypto(settings, automation, action);
+      case actionTypes.GRID:
+        return gridEval(settings, automation);
+    }
   } catch (err) {
-      if (automation.logs) {
-          logger('A:' + automation.id, `${automation.name}:${action.type}`);
-          logger('A:' + automation.id, err);
-      }
-      return { text: `Error at ${automation.name}: ${err.message}`, type: 'error' };
+    if (automation.logs) {
+      logger("A:" + automation.id, `${automation.name}:${action.type}`);
+      logger("A:" + automation.id, err);
+    }
+    return {
+      text: `Error at ${automation.name}: ${err.message}`,
+      type: "error",
+    };
   }
 }
 
